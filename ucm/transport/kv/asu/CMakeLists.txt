@@ -75,6 +75,29 @@ target_link_libraries(asu_transport
         asu_ascend_deps
 )
 
+# --- AIV trans provider backend (libumc_asu_transport_provider.a) -------------
+# Built and installed from npu2cpu_rdma:
+#   cmake --install <build> --component asu_provider --prefix <AIV_PROVIDER_ROOT>
+# which yields <root>/lib/libumc_asu_transport_provider.a and
+# <root>/include/aiv_transport/{aiv_transport.h,types.h}. When AIV_PROVIDER_ROOT
+# is unset / the lib is missing, the AIV backend stays a compile-time no-op
+# (asu_transport_impl.cpp returns UNSUPPORTED for TransProviderType::AIV).
+set(AIV_PROVIDER_ROOT "" CACHE PATH "Install prefix of libumc_asu_transport_provider.a")
+find_library(AIV_PROVIDER_LIB
+    NAMES umc_asu_transport_provider
+    HINTS ${AIV_PROVIDER_ROOT}/lib ${AIV_PROVIDER_ROOT}/lib64
+    NO_DEFAULT_PATH
+)
+if(AIV_PROVIDER_LIB)
+    message(STATUS "AIV trans provider lib: ${AIV_PROVIDER_LIB}")
+    target_include_directories(asu_transport PRIVATE ${AIV_PROVIDER_ROOT}/include)
+    target_link_libraries(asu_transport PRIVATE ${AIV_PROVIDER_LIB} dl)
+    target_compile_definitions(asu_transport PRIVATE ASU_HAS_AIV_PROVIDER)
+else()
+    message(WARNING "libumc_asu_transport_provider not found (AIV_PROVIDER_ROOT='${AIV_PROVIDER_ROOT}'); "
+                    "TransProviderType::AIV will report UNSUPPORTED at runtime")
+endif()
+
 file(GLOB ASU_CLIENT_SOURCES CONFIGURE_DEPENDS client/src/*.cpp)
 add_library(asu_client SHARED ${ASU_CLIENT_SOURCES})
 target_include_directories(asu_client

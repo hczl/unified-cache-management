@@ -28,6 +28,7 @@
 #include <thread>
 #include <utility>
 #include "aicpu_trans_provider.h"
+#include "aiv_trans_provider.h"
 #include "asu_response_status.h"
 #include "asu_transport/asu_transport.h"
 #include "connection_internal.h"
@@ -68,8 +69,14 @@ Status AsuTransportImpl::Init(const TransportConfig& config)
                     std::make_unique<FakeTransProvider>(MakeFakeTransProviderConfig(config_));
                 break;
             case TransProviderType::AIV:
+#ifdef ASU_HAS_AIV_PROVIDER
+                transProvider_ = std::make_unique<AIVTransProvider>();
+                break;
+#else
                 return Status::Error(StatusCode::UNSUPPORTED,
-                                     "AIV trans provider is not implemented");
+                                     "AIV trans provider requires libumc_asu_transport_provider.a "
+                                     "(configure with -DAIV_PROVIDER_ROOT=<install-prefix>)");
+#endif
             case TransProviderType::UNSUPPORTED:
                 return Status::Error(StatusCode::UNSUPPORTED,
                                      "ASU trans provider backend is not supported");
