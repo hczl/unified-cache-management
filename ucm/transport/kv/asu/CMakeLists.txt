@@ -75,6 +75,41 @@ target_link_libraries(asu_transport
         asu_ascend_deps
 )
 
+if(NOT DEFINED ASU_AIV_PROVIDER_ROOT)
+    if(DEFINED ENV{ASU_AIV_PROVIDER_ROOT})
+        set(ASU_AIV_PROVIDER_ROOT "$ENV{ASU_AIV_PROVIDER_ROOT}" CACHE PATH "Install prefix of libumc_asu_transport_provider.a")
+    else()
+        set(ASU_AIV_PROVIDER_ROOT "" CACHE PATH "Install prefix of libumc_asu_transport_provider.a")
+    endif()
+endif()
+
+find_path(ASU_AIV_PROVIDER_INCLUDE_DIR
+    NAMES aiv_transport/aiv_transport.h
+    HINTS
+        ${ASU_AIV_PROVIDER_ROOT}/include
+    NO_DEFAULT_PATH
+)
+if(NOT ASU_AIV_PROVIDER_INCLUDE_DIR)
+    message(FATAL_ERROR "Cannot find aiv_transport/aiv_transport.h under ASU_AIV_PROVIDER_ROOT=${ASU_AIV_PROVIDER_ROOT}")
+endif()
+
+find_library(ASU_AIV_PROVIDER_LIB
+    NAMES umc_asu_transport_provider
+    HINTS
+        ${ASU_AIV_PROVIDER_ROOT}/lib
+        ${ASU_AIV_PROVIDER_ROOT}/lib64
+    NO_DEFAULT_PATH
+)
+if(NOT ASU_AIV_PROVIDER_LIB)
+    message(FATAL_ERROR "Cannot find libumc_asu_transport_provider under ASU_AIV_PROVIDER_ROOT=${ASU_AIV_PROVIDER_ROOT}")
+endif()
+
+message(STATUS "ASU AIV provider include: ${ASU_AIV_PROVIDER_INCLUDE_DIR}")
+message(STATUS "ASU AIV provider lib: ${ASU_AIV_PROVIDER_LIB}")
+
+target_include_directories(asu_transport PRIVATE ${ASU_AIV_PROVIDER_INCLUDE_DIR})
+target_link_libraries(asu_transport PRIVATE ${ASU_AIV_PROVIDER_LIB} dl)
+
 file(GLOB ASU_CLIENT_SOURCES CONFIGURE_DEPENDS client/src/*.cpp)
 add_library(asu_client SHARED ${ASU_CLIENT_SOURCES})
 target_include_directories(asu_client
